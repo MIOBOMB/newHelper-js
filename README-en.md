@@ -1,6 +1,6 @@
 # newHelper.js
-
-A library for creating ultra-lightweight yet highly functional admin panels, one of the best examples of Object Hub. The total bundle of the entire site is only 280 kb of pure code, and the internal admin panel with all HTML+CSS+JS weighs only 25 kilobytes (with gzip, the size is even smaller). I try to keep the library in a "Modular Monolith" state.
+- [русская версия](README.md)
+- A library for creating ultra-lightweight yet highly functional admin panels, one of the best examples of Object Hub. The total bundle of the entire site is only 280 kb of pure code, and the internal admin panel with all HTML+CSS+JS weighs only 25 kilobytes (with gzip, the size is even smaller). I try to keep the library in a "Modular Monolith" state.
 Current version - 2.1, 13.6kb
 
 # Features

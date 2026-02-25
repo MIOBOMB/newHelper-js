@@ -1,0 +1,45 @@
+{
+  "name": "newhelper-js",
+  "version": "2.1.2",
+  "description": "сверх лёгкая библиотека для построения админок",
+  "keywords": [
+    "admin",
+    "ui",
+    "jquery",
+    "modal",
+    "dialog",
+    "router",
+    "window-manager",
+    "i18n",
+    "internationalization",
+    "lazy-loading",
+    "hotkeys",
+    "lightweight",
+    "vanilla-js",
+    "frontend",
+    "zero-dependencies"
+  ],
+  "homepage": "https://github.com/MIOBOMB/newHelper-js#readme",
+  "bugs": {
+    "url": "https://github.com/MIOBOMB/newHelper-js/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MIOBOMB/newHelper-js.git"
+  },
+  "license": "BSD-2-Clause",
+  "author": "MIOBOMB",
+  "type": "commonjs",
+  "main": "newHelper.js",
+  "files": [
+    "newHelper.js",
+    "README.md",
+    "README-en.md",
+    "docs.md",
+    "history.md"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "unpkg": "newHelper.js"
+}

@@ -1,25 +1,30 @@
 /*
+ * Перед вами код newHelper.js версии 2.1.4, он построен на базе фабрики
+ * Которая начинается с Intl.newHelper=function(){...};
+ * Причина использоватся Intl.newHelper банально проста
+ * Если я сейчас засираю глобалскоуп одной полу гибкой переменной
+ * То почему бы не начать отказываться от засирания глобал скоупа как такового
+ * И да, для инициализации ньюхелпера реально нужно писать
+ * yourVariable = Intl.newHelper()
+ * 
  * Стиль комментариев
  * FIXME - странное поведение функции, которое желательно бы переделать
  * ??? - требует уточнения
  * !!! - обратите внимание
  * 
- * Перед вами код newHelper.js версии 2.1.2, он построен на базе гибкой псевдофабрики
- * Которая начинается с _=function(){...}();
- * Если у вас есть конфликты с Lodash вы можете переименовать _ на всё что вам нужно
+ * ???: рассмотреть переход на es6 экспорт вместо вкладывания фабрики в Intl
  * 
- * НЕСТАБИЛЬНОЕ API (НЕ РЕКОМЕНДУЕТСЯ ДЛЯ PRODUCTION):
- * модуль _.autoForm
- * _.win.read()
- * _.win.write()
+ * ???: Последний глобальный эвент лисенер можно вынести внутрь _.link.get()
  * 
- * УДАЛЕНО (вернётся позже):
- * модуль _.err
+ * Новые модули, готовятсяк релизу в 2.2, их апи может быть чуть чуть нестабильно:
+ * form
+ * tables
+ * drag (портирован)
+ * pipe/pipeAsync
  */
 
-
-_=function(){let _={
-link:{
+Intl.newHelper=function() {let _ = {
+link: {
 	/*
 	 * МОДУЛЬ ССЫЛОК
 	 * 
@@ -34,41 +39,41 @@ link:{
 	 * 
 	 * !!!: в функции get() работает весь роутинг, в т.ч. вложенный для страниц
 	 */
-	basePage:()=>{},
-	defTitle:'',
-	actions:{},
-	commands:{},
+	basePage: ()=>{},
+	defTitle: '',
+	actions: {},
+	commands: {},
 
 	_i: true, // _i - блокировщик pushState в set()
-	_cmd:[],
-	compile:()=>location.search.replace('?','').split('&'),
-	set(page,title=this.defTitle){
-		if (title) _.$.D.title=title;
-		if (!this._i){
-			let link=this.compile();
-			link[0]=page;
+	_cmd: [],
+	compile: ()=>location.search.replace('?','').split('&'),
+	set(page, title = this.defTitle) {
+		if (title) document.title = title;
+		if (!this._i) {
+			let link = this.compile();
+			link[0] = page;
 			history.pushState(null,null,'?'+link.join('&'));
 		}
-		this._i=false;
+		this._i = false;
 	},
-	add(cmd){
-		let link=this.compile();
-		if (!link.includes(cmd)){
+	add(cmd) {
+		let link = this.compile();
+		if (!link.includes(cmd)) {
 			link.push(cmd);
 			this._cmd.push(cmd);
 			history.replaceState(null,null,'?'+link.join('&'));
 		}
 	},
-	remove(cmd){
-		let link=this.compile();
+	remove(cmd) {
+		let link = this.compile();
 		if (link.includes(cmd)){
-			let c=this._cmd;
+			let c = this._cmd;
 			link.splice(link.indexOf(cmd),1);
 			c.splice(c.indexOf(cmd),1);
 			history.replaceState(null,null,'?'+link.join('&'));
 		}
 	},
-	get(){
+	get() {
 		/*
 		 * Страницы бросают ошибку чтобы вызвать базовую страницу
 		 * Команды тем временем так не делают
@@ -77,40 +82,42 @@ link:{
 		 * При popstate команды берутся из хранилища _cmd, вместо самой ссылки
 		 * Сделано это для переноса команд при прыжках по истории
 		 */
-		let links=this.compile(),
-			[firstKey,fisrtValue]=links[0].split('='),
-			cmds=links.slice(1);
+		let links = this.compile(),
+			[ firstKey, fisrtValue ] = links[0].split('='),
+			cmds = links.slice(1);
 		try {
-			let dirs=firstKey.split('/'),
-				dir=this.actions,
-				main=dir[firstKey];
-			if (!firstKey.includes('/')){
+			let dirs = firstKey.split('/'),
+				dir = this.actions,
+				main = dir[firstKey];
+			if (!firstKey.includes('/')) {
 				main(fisrtValue);
 			} else {
 				for (let p of dirs){
-					let kDir=dir[p+'/'];
+					let kDir = dir[p+'/'];
 					if (kDir)
-						dir=kDir;
+						dir = kDir;
 					else{
 						dir[p](fisrtValue);
 						break;
 					}
 				}
 			}
-		}catch(e){
+		} catch (e) {
 			this.basePage();
 			throw e;
 		}
-		this._cmd=cmds;
-		cmds.forEach(cmmdPre=>{
-			let [key,value]=cmmdPre.split('=');
-			let cmd=this.commands[key];
-			if (cmd) cmd(value);
-			else console.error(new Error(`command '${cmd}' doesn't exist!`))
+		this._cmd = cmds;
+		cmds.forEach(cmdPre => {
+			let [ key, value ] = cmdPre.split('=');
+			let cmd = this.commands[key];
+			if (cmd)
+				cmd(value);
+			else 
+				console.error(new Error(`command '${cmd}' doesn't exist!`))
 		});
 	},
 },
-lazy:{
+lazy: {
 	/*
 	 * МОДУЛЬ ЛЕНИ
 	 * 
@@ -123,12 +130,8 @@ lazy:{
 	 * 
 	 * ???: будет ли легче создавать лень в легаси проектах через es6 импорты
 	 */
-	loaded:{},
-	load(url,...args){
-		let key=url.split('?')[0], // отсекаем параметры, чтобы не дублировать
-			state=this.loaded,
-			c=state[key];
-
+	loaded: {},
+	load(url, ...args) {
 		/*
 		 * ...args передаются в Promise.resolve(args)
 		 * Это позволяет делать _.lazy.load('script.js', 'данные', 'для', 'колбека')
@@ -141,45 +144,54 @@ lazy:{
 		 * 
 		 * Это защита от двойной загрузки одного скрипта
 		 */
-		if (c=== true) return Promise.resolve(args);
-		if (c instanceof Promise) return c.then(()=>args);
+		let key = url.split('?')[0], // отсекаем параметры, чтобы не дублировать
+			state = this.loaded;
+		if (state[key] === true)
+			return Promise.resolve(args);
+		if (state[key] instanceof Promise)
+			return state[key].then(()=>args);
 
-		let pr=new Promise((resolve,reject)=>{
-			let scr=_.$.D.createElement('script');
-			scr.src=url;
-			scr.onload=()=>{
-				state[key]=true;
+		let promise = new Promise((resolve,reject)=>{
+			let scr = document.createElement('script');
+			scr.src = url;
+			scr.onload = ()=>{
+				state[key] = true;
 				resolve(args);
 			};
-			scr.onerror=()=>{
+			scr.onerror = ()=>{
 				delete state[key];
 				reject(new Error('Failed to load '+url));
 			};
-			_.$.D.head.append(scr);
+			document.head.append(scr);
 		});
-		state[key]=pr;
-		return pr;
+		state[key] = promise;
+		return promise;
 	},
-	register(scr,funcs){
-		if (!Array.isArray(funcs)) return new Error('Array required for register');
+	register(script, funcs) {
+		if (!Array.isArray(funcs))
+			return new Error('Array required for register');
 
-		for (let fn of funcs)
-			window[fn]=(...a)=>this._(scr,fn).then(f=>f(...a));
-			// ???: добавить вложенность с созданием объектов-обёрток
-
-		console.info('lazy> Applied lazy '+scr+' with this functions:',funcs);
-		// ???: не мешает ли тут console.info
+		for (let fn of funcs) {
+			let fns = fn.split('.'),
+				method = fns.pop(),
+				path = fns.slice(0,-1);
+			console.log(path)
+			window[fn] = (...a)=>
+				this.lazy(script,fn).then(f=>f(...a));
+		}
 	},
-	async _(scr,fn){
-		let w=window,
-			wrapper=w[fn]; 
-		try{await this.load(scr)}
-		catch(e){throw e}
-		if (wrapper!== w[fn]) return w[fn];
+	async lazy(scr, fn) {
+		let w = window,
+			wrapper = w[fn];
+
+		await this.load(scr); // await короче Promise.then
+
+		if (wrapper !== w[fn])
+			return w[fn];
 		throw new Error(`Function ${fn} not loaded from ${scr}`);
 	},
 },
-lang:{
+lang: {
 	/*
 	 * МОДУЛЬ ПЕРЕВОДОВ
 	 * 
@@ -191,44 +203,35 @@ lang:{
 	 * Так удобнее отображать динамичные данные на сайтах
 	 * Например никнейм пользователя
 	 */
-	addr:'',
-	vars:{},
-	main:{},
+	addr: '',
+	vars: {},
+	main: {},
 
-	load(name){
-		return new Promise((resolve,reject)=>{
-			_.http.req('GET',this.addr+name+'.json',false,{'Cache-Control':'no-cache,no-store,max-age=0'})
-				.then(data=>resolve(data));
-		})
-		// ???: убрать ли захардкоженое отключение кеша
-	},
-	parse:(packet,vars=_.lang.vars)=>
-		/*
-		 * Регулярка ищет всё, что внутри плюсов, в JSON они редки
-		 * Это позволяет без конфликтов подставлять переменные если они нашлись
-		 * 
-		 * ???: переделать под общий синтаксис типа {var}
-		 */
-		packet.replace(/\+([^+]+)\+/g,(match,key)=>{
-			let v=vars[key];
-			return v!== undefined ? v : match;
+	load: name => fetch(_.lang.addr + name + '.json'),
+	parse: (packet, vars = _.lang.vars)=>
+		// ???: переделать под общий синтаксис типа {var}
+		packet.replace(/\+([^+]+)\+/g, (match, key)=>{
+			let v = vars[key];
+			return v !== undefined ? v : match;
 		}),
 	async replace(name){
-		const p=await this.load(name); // await короче Promise.then
-		this.main=JSON.parse(this.parse(p)); // без замены языка нельзя начинать перевод
-		for (let e of _.$.qa('[data-trans]')){
-			let key=e.dataset.trans,
-				text=this.main[key] || `<code>lang.get('${key}')</code>`,
-				// ???: убрать обёртывание отсутсвующих ключей в <code />
-				tag=e.tagName;
+		const packet = await this.load(name);
+		this.main = JSON.parse(this.parse(packet)); // без замены языка нельзя начинать перевод
 
-			if (tag=== 'IMG') e.src=text;
+		for (let el of document.querySelectorAll('[data-trans]')) {
+			let key = el.dataset.trans,
+				text = this.main[key] || key,
+				tag = el.tagName;
+
+			if (tag === 'IMG')
+				el.src = text;
 			else if (['INPUT','TEXTAREA'].includes(tag))
-				e[e.type=== 'submit' ? 'value' :'placeholder']=text;
-			else e.innerHTML=text;
+				el[ el.type === 'submit' ? 'value' : 'placeholder' ] = text;
+			else
+				el.innerHTML = text;
 		}
 		// возвращаем для последующей обработки пакета, например для сохранения в _.storage
-		return p;
+		return packet;
 	},
 
 	/*
@@ -242,30 +245,25 @@ lang:{
 	 * 
 	 * !!!: если ключа в пакете нету, будет выброшен warning
 	 */
-	attr:(i)=>` data-trans="${i}"`,
-	from:i=>_.lang.main[i] || console.warn(`_.lang> ${i} is undefined`) || i,
+	attr:		i=>` data-trans="${i}"`,
+	from:		i=>_.lang.main[i] || console.warn(`_.lang> ${i} is undefined`) || i,
 
 	text:		i=>_.lang.attr(i)+`>${_.lang.from(i)}<`,
-	submit:		i=>_.lang.attr(i)+`value="${_.lang.from(i)}">`,
-	/*
-	 * <input type=submit> работает во всех браузерах стабильно
-	 * не используйте на них обычный lang.input()
-	 * иначе у вас не отобразится текст
-	 */
+	submit:		i=>_.lang.attr(i)+`value="${_.lang.from(i)}">`, // <input type=submit>
 	input:		i=>_.lang.attr(i)+`placeholder="${_.lang.from(i)}">`,
 	textarea:	i=>_.lang.attr(i)+`placeholder="${_.lang.from(i)}"><`,
 	img:		i=>_.lang.attr(i)+`src="${_.lang.from(i)}"`,
-	win(i){
-		let text=this.from(i),
-			dT=this.attr(i);
-		if (text== null || text== ''){
-			text=i;
-			dT='';
+	winTitle(i) {
+		let text = this.from(i),
+			dataTrans = this.attr(i);
+		if (text == null || text == '') {
+			text = i;
+			dataTrans = '';
 		}
-		return `${dT}>${text}<`;
+		return `${dataTrans}>${text}<`;
 	},
 },
-http:{
+http: {
 	/*
 	 * HTTP-КЛИЕНТ
 	 * 
@@ -278,50 +276,46 @@ http:{
 	 * Как пример Authorization: 'your token'
 	 * ???: добавить возможность игнорировать дефолтные хедеры
 	 */
-	defaultHeaders:{},
-	req(method,url,data='',headers={},fileProgressElement=false){
-		return new Promise((resolve,reject)=>{
-			let xhr=new XMLHttpRequest();
+	defaultHeaders: {},
+	req(method, url, data = '', headers = {}, fileProgressElement = false) {
+		return new Promise((resolve, reject)=>{
+			let xhr = new XMLHttpRequest();
 
-			xhr.open(method,url);
+			xhr.open(method, url);
 
-			let allHeaders={...this.defaultHeaders,...headers};
+			let allHeaders = { ...this.defaultHeaders, ...headers };
 			for (let header in allHeaders)
-				xhr.setRequestHeader(header,allHeaders[header]);
+				xhr.setRequestHeader(header, allHeaders[header]);
 
 			// !!!: fileProgressElement ожидает <progress> элемент без min/max
 			// Потому что value от 0 до 1
 			if (fileProgressElement)
-				xhr.upload.onprogress=(e)=>{
-					if (e.lengthComputable){
-						let percentage=(e.loaded / e.total);
-						fileProgressElement.setAttribute('value',percentage);
+				xhr.upload.onprogress= e=>{
+					if (e.lengthComputable) {
+						let percentage = (e.loaded / e.total);
+						fileProgressElement.setAttribute('value', percentage);
 					}
 				};
 
-			xhr.onreadystatechange=()=>{
+			xhr.onreadystatechange= ()=>{
 				if (xhr.readyState=== 4)
-					if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
-					else reject(new Error(`${xhr.status} - ${xhr.statusText}`),xhr);
+					if (xhr.status >= 200 && xhr.status < 300)
+						resolve(xhr.response);
+					else 
+						reject(new Error(`${xhr.status} - ${xhr.statusText}`),xhr);
 			};
-			xhr.onerror=()=>reject(new Error('Network error'),xhr);
+			xhr.onerror = ()=>
+				reject(new Error('Network error'), xhr);
 
 			xhr.send(data);
 		});
 	},
+	get: (url, headers={})=>
+		_.http.req('GET', url, false, headers),
+	post: (url, data = '', headers = {}, fileProgressElement = false)=>
+		_.http.req('POST', url, data, headers, fileProgressElement)
 },
-$:{
-	D: document,
-	id:(i)=>_.$.D.getElementById(i),
-	q:(i,p=_.$.D)=>p.querySelector(i),
-	qa:(i,p=_.$.D)=>p.querySelectorAll(i),
-
-	on:(el,ev,fn,opts)=>el.addEventListener(ev,fn,opts),
-	off:(el,ev,fn,opts)=>el.removeEventListener(ev,fn,opts),
-
-	cliRect:e=>e.getBoundingClientRect(), // сокращение чтобы не писать 25+ символов
-},
-html(strs,...args){
+html(strs, ...args) {
 	/*
 	 * Шаблонные строки в DOM
 	 * 
@@ -334,82 +328,229 @@ html(strs,...args){
 	 * - Быстрее чем createElement для сложных структур
 	 * - Банально удобнее createElement для сложных древ
 	 */
-	let strF=[];
-	for (let i=0; i < args.length; i++)
-		strF.push(strs[i],args[i]);
-	strF.push(strs[strs.length - 1]);
-	// убираем лишние пробелы, чтобы не плодить пустые текстовые ноды
-	strF=strF.join('').trim().replace(/\s+/g,' ');
+	let fullStr = '',
+		DOMs = [];
+	for (let i=0; i < args.length; i++) {
+		fullStr += strs[i];
+		let arg = args[i];
+		if (arg && arg.nodeType) {
+            fullStr += `<!--${DOMs.length}-->`;
+            DOMs.push(arg);
+		} else {
+            fullStr += arg;
+		}
+	}
+    fullStr += strs[strs.length - 1];
 
-	const template=_.$.D.createElement('template');
-	template.innerHTML=strF;
+	const template = document.createElement('template');
+	template.innerHTML = fullStr;
+	const content = template.content;
 
-	const content=template.content;
-	if (content.children.length=== 1)
+	// для создания вложенности html элементов заменяем плейсхолдеры <!--${DOMs.length}-->
+	const it = document.createTreeWalker(
+		content,
+		NodeFilter.SHOW_COMMENT
+	);
+	let node, i = 0;
+	for (; node = it.nextNode(); )
+		node.replaceWith(DOMs[i++]);
+
+	if (content.children.length === 1)
 		return content.firstChild;
 	return content;
 },
-autoForm:{
+pipe(data, ...fns) {
+	/*
+	 * КАСТОМНЫЙ PIPE ОПЕРАТОР
+	 * 
+	 * Никакой магии, обычный синхронный |>
+	 * для мутации таблиц будет самое то
+	 */
+	for (const fn of fns)
+		data = fn(data);
+	return data;
+},
+async pipeAsync(data, ...fns) {
+	/*
+	 * КАСТОМНЫЙ PIPE ОПЕРАТОР 2
+	 * 
+	 * Никакой магии, обычный асинхронный |>
+	 * для получения и мутации данных сойдёт
+	 */
+	for (const fn of fns) {
+		let waiter = await data;
+		data = await fn(waiter);
+	}
+	return data;
+},
+form: {
 	/*
 	 * АВТОСОХРАНЕНИЕ ФОРМ
 	 * 
 	 * Позволяет сохранять состояние формы на случай
 	 * Если в офисе внезапно выключат свет
 	 * 
-	 * Реализовывать удаление читателя событий я не стал
-	 * Зачем удалять обработчик если он вешается на форму а не на Document?
+	 * ???: может сделать более полноценный модуль форм
+	 *      с встроенной валидацией, или чем нибуть ещё
 	 */
-	autoSave(form,delay=1000,cb){
-		let t,
-		save=()=>{
-			let data={};
-			new FormData(form).forEach((v,k)=>{
-				if (data[k]!== undefined) {
-					if (!Array.isArray(data[k])) data[k]=[data[k]];
-					data[k].push(v);
-				} else data[k]=v;
-			});
-			cb(data);
-		};
-		if(delay<1)return save();
-		_.$.on(form,'input',()=>{
-			clearTimeout(t);
-			t=setTimeout(save,delay);
+	read(form) {
+		let data = {};
+		new FormData(form).forEach((value, key)=>{
+			if (data[key] !== undefined) {
+				if (!Array.isArray(data[key]))
+					data[key] = [data[key]];
+				else 
+					data[key].push(value);
+			} else
+				data[key] = value;
 		});
+		return data;
 	},
-	write(form,data){
-		Object.entries(data).forEach(([k,v])=>{
-			let el=form.elements[k];
-			if (!el) return;
-			if (el.length) [...el].forEach((opt,i)=> 
-				/* 
-				 * ???: переделать тернарники на внешные переменные для повышения читаемости
-				 * 
-				 * Код ужасно читать, не отрицаю
-				 * Но причина сделать так проста - всего 2 строки с простыми условиями
-				 * Вместо 8 или 14 как у меня получалось ранее
-				 */
-				opt[['checkbox','radio'].includes(opt.type) ? 'checked' : 'selected']=
-				Array.isArray(v) ? v.includes(opt.value) : opt.value== v);
+	write(form, data) {
+		Object.entries(data).forEach(([key,value])=>{
+			let el = form.elements[key];
+			if (!el)
+				return;
+			if (el.length)
+				[...el].forEach((opt,i)=>{
+					let isCheckBox = 'selected';
+					if (['checkbox','radio'].includes(opt.type))
+						isCheckBox = 'checked';
+
+					let select = false;
+					if (Array.isArray(value)) {
+						if (value.includes(opt.value))
+							select = true;
+					} else if (opt.value == value)
+						select = true;
+
+					opt[isCheckBox] = select;
+				});
 			else
-				el.value=v;
+				el.value = value;
 		});
 		return data;
 	},
 },
-storage:class{
-	constructor(strg,name){
-		this._=strg;
-		this.n=name;
-	}
-	get=(key)=>this._.getItem(this.n+key);
-	set=(key,value)=>this._.setItem(this.n+key,value);
-	remove=(key)=>this._.removeItem(this.n+key);
-	clear=()=>Object.keys(this._)
-		.filter(k=>k.startsWith(this.n))
-		.forEach(k=>this._.removeItem(k));
+tables(name, columns, raw, rowKey = 'ID', selection = false) {
+	/*
+	 * МОДУЛЬ АВТОТАБЛИЦ
+	 * 
+	 * Позволяет быстро генерировать таблицы с особыми свойствами
+	 * 
+	 * !!!: в columns параметр mutate работает как парсер значения
+	 * !!!: сортируйте сами путём мутации data, javascript как никак умеет
+	 *      или вообще сортируйте на сервере
+	 * 
+	 * ???: рассмотреть переделку апи т.к. в текущей реализации гибкость слишком низкая
+	 */
+	if (!Array.isArray(raw))
+		raw = Object.values(raw);
+	let state = {
+		name: name,
+		columns: columns,
+		raw: raw,
+		rowKey: rowKey,
+		data: raw,
+		selected: new Set(),
+		elem: null,
+
+		build(elem) {
+			this.elem = elem;
+			this.render();
+			return this;
+		},
+
+		getSelected() {
+			return [ ...this.selected ];
+		},
+
+		render() {
+			if (!this.elem) return;
+			let html = '';
+			html += `<thead><tr>`;
+			if (selection)
+				html += `<th></th>`;
+			for (let c of this.columns)
+				html += `<th>${c.title || c.key}</th>`;
+			html += `</tr></thead>`;
+
+			html += `<tbody>`;
+			for (let row of this.data) {
+				let id = row[this.rowKey];
+				let sel = this.selected.has(id) ? `selected` : ``;
+
+				html += `<tr data-id="${id}" class="${sel}">`;
+				if (selection)
+					html +=
+					`<td><input type=checkbox name="${this.name}" value="${id}" /></td>`;
+				for (let c of this.columns) {
+					let v = row[c.key];
+					if (c.mutate)
+						v = c.mutate(row);
+					html += `<td>${v ?? ``}</td>`;
+				}
+				html += `</tr>`;
+			}
+			html += `</tbody>`;
+
+			this.elem.innerHTML = `<table>${html}</table>`;
+			this.elem.firstChild.addEventListener('change', e => {
+				let targ = e.target;
+				if (targ.type !== 'checkbox' || targ.name !== this.name)
+					return;
+
+				let id = targ.value;
+
+				if (targ.checked)
+					this.selected.add(id);
+				else
+					this.selected.delete(id);
+			})
+		}
+	};
+	return state;
 },
-hotkeys:{ 
+storage: class {
+	constructor(storage, name) {
+		this._ = storage;
+		this.n = name;
+	}
+	get = key=>			this._.getItem(this.n + key);
+	set = (key, value)=>this._.setItem(this.n + key, value);
+	remove = key=>		this._.removeItem(this.n + key);
+	clear = ()=>Object.keys(this._)
+		.filter(k => k.startsWith(this.n))
+			.forEach(k => this._.removeItem(k));
+},
+err: {
+	init() {
+		window.addEventListener('error',_.err.handleGlobal);
+		window.addEventListener('unhandledrejection',_.err.handleRejection);
+	},
+	print: ()=>{},
+
+	errors: {},
+	_c: 0,
+	log(err) {
+		_.err.print(_.err._c,err);
+		_.err._c++;
+		_.err.errors[_.err._c]=err;
+	},
+	handleGlobal(message,source,line,column,error){
+		console.error(message,source+':'+line+':'+column,error)
+		_.err.log(message + `\n IN ${source} ON LINE ${line} IN COLUMN ${column}`);
+	},
+	handleRejection(e){
+		const err = e.reason || e;
+		console.error(err);
+		_.err.log(
+			`PROMISE ERROR\n`+
+			`${e.stack || e}`
+		);
+	},
+},
+hotkeys: {
 	/*
 	 * ГОРЯЧИЕ КЛАВИШЫ
 	 * 
@@ -425,76 +566,124 @@ hotkeys:{
 	 * Вы же не хотите чтобы у вас тормозил поток с 100+ хоткеями
 	 * Из-за простого печатанья?
 	 */
-	keys:{},
-	_holds:new Set(),
-	_:false,
+	keys: new Map(),
+	_holds: new Set(),
+	_: false,
 
-	_parse:combo=>combo.split('+').map(k=>k.trim()),
+	_parse: combo => combo.split('+').map(k=>k.trim()),
 	_match(keys) {
 		// Нужно сверять все клавишы, это же КОМБИНАЦИЯ а не отдельные куски
 		for (let k of keys) if (!this._holds.has(k)) return false;
 		return true;
 	},
 	_init() {
-		if (this._) return;
-		_.$.on(_.$.D,'keydown',e=>{
+		if (this._)
+			return;
+		document.addEventListener('keydown', e=>{
 			this._holds.add(e.code);// key зависит от раскладки (на Qwerty 'KeyZ' — это 'z', на Йцукен — 'я')
 			// code даёт физическое положение клавиши, что важно для игр и хоткеев, и в целом универсальнее
 
-			for (let combo in this.keys) {
-				let h=this.keys[combo];
-				if (!this._match(h.keys)) continue;
-
-				if (h.press && !h.active) {
-					h.active=true; // active защищает от множественных срабатываний
-					h.press(e);
+			for (let hotkey of this.keys.values()) {
+				if (!this._match(hotkey.keys))
+					continue;
+				if (hotkey.press && !hotkey.active) {
+					hotkey.active = true; // active защищает от множественных срабатываний
+					hotkey.press(e);
 				}
 			}
 		});
-		_.$.on(_.$.D,'keyup',e=>{
+		document.addEventListener('keyup', e=>{
 			this._holds.delete(e.code);
 
-			for (let combo in this.keys) {
-				let h=this.keys[combo];
-				if (h.active && !this._match(h.keys)) {
-					h.active=false;
-					h.release(e);
+			for (let hotkey of this.keys.values()) {
+				if (hotkey.active && !this._match(hotkey.keys)) {
+					hotkey.active=false;
+					hotkey.release(e);
 				}
 			}
 		});
-		_.$.on(window,'blur',()=>{
+		window.addEventListener('blur', e=>{
 			/*
 			 * При переключении в другое окно автоматического keyup не будет
 			 * Поэтому сбрасываем всё принудительно, мало ли
 			 */
-			for (let combo in this.keys) {
-				let h=this.keys[combo];
-				if (h.active) {
-					h.active=false;
-					h.release();
+			for (let hotkey of this.keys.values()) {
+				if (hotkey.active) {
+					hotkey.active = false;
+					hotkey.release();
 				}
 			}
 			this._holds.clear();
 		});
 		this._=true;
 	},
-	on(combo,press,release) {
+	on(combo, press, release) {
 		this._init();
-		let keys=this._parse(combo);
+		let keys = this._parse(combo);
 
-		this.keys[combo]={
+		this.keys.set(combo, {
 			keys,
 			// press/releace по умолчанию пустышки для сокращения синаксиса
 			press: press || (()=>{}),
 			release: release || (()=>{}),
 			active: false
-		};
+		});
 
 		return this;
 	},
 	off(combo) {
-		delete this.keys[combo];
+		this.keys.delete(combo);
 		return this;
+	},
+},
+drag: {
+	_i: false,
+	active: new Map(),
+	prevent: e=>e.preventDefault(),
+	init(dragger, mover, onStart, onStop) {
+		let start=e=>{
+			// Проверяем куда нажали, если бы мы не проверяли,
+			// То драггер не дал бы нам нажать на кнопки или изменить имя окна
+			if (e.target.closest('button,input')) return;
+
+			this.prevent(e);
+
+			this.active.set(e.pointerId,{
+				x:e.clientX,
+				y:e.clientY,
+				mover:mover,
+				onStop:onStop
+			});
+
+			onStart?.(e);
+		};
+		if (!this._i) {
+			document.addEventListener("pointermove", (e) => this.move(e));
+			document.addEventListener("pointerup", (e) => this.stop(e));
+			document.addEventListener("pointercancel", (e) => this.stop(e));
+			this._i = true;
+		}
+		dragger.onpointerdown=start;
+		dragger.ontouchmove=this.prevent;
+	},
+	move(e) {
+		let p=this.active.get(e.pointerId);
+		if(!p) return;
+		this.prevent(e);
+
+		let dx=p.x - e.clientX,
+			dy=p.y - e.clientY;
+
+		p.x=e.clientX;
+		p.y=e.clientY;
+
+		let mov = p.mover;
+		mov.style.top=(mov.offsetTop - dy)+"px";
+		mov.style.left=(mov.offsetLeft - dx)+"px";
+	},
+	stop(e) {
+		this.active.get(e.pointerId)?.onStop?.(e);
+		this.active.delete(e.pointerId);
 	},
 },
 win:{
@@ -524,6 +713,7 @@ win:{
 	 */
 	manager:false,
 	hider:false,
+	text:'',
 
 	winAttrs:'',
 	dragAttrs:'',
@@ -552,63 +742,25 @@ win:{
 		// !!!: в теории можно задать любой айди
 		// ???: проверить при скольки окнах генератор начинает тормозить
 		do id=Math.random().toString(36).substring(2,8);
-		while (_.wins[id]);
+		while (_.wins.has(id));
 		return id;
 	},
 	_winBtn(win,text,func){
 		let b=_.html`<button ${this.btnAttrs}>${text}</button>`;
-		_.$.on(b,'click',()=>func(win));
+		b.addEventListener('click',()=>func(win));
 		return b;
 	},
 	_hiderBtn(win){
-		let title=win.langs!== false ? _.lang.win('WINDOW-'+win.langs) : `>${win.name}<`,
+		let title=win.langs!== false ? _.lang.winTitle(_.win.text+win.langs) : `>${win.name}<`,
 			b=_.html`<button id=hider${win.id} ${this.hiderAttrs}${title}/button>`;
-		_.$.on(b,'click',()=>this.show(win));
+		b.addEventListener('click',()=>this.show(win));
 		return b;
 	},
-	_initWin(win){
-		let D=_.$.D,
-		wEl=win.elem,
-		x1=0,y1=0,x2=0,y2=0,
-		prevent=e=>e.preventDefault(),
-		startW=e=>{
-			let targ=e.target;
-			// Проверяем куда нажали, если бы мы не проверяли,
-			// То драггер не дал бы нам нажать на кнопки или изменить имя окна
-			if (['BUTTON','INPUT'].includes(targ.tagName) || targ.closest('button,input')){
-				return;
-			}
-			this.manager.appendChild(wEl);
-
-			prevent(e);
-			x2=e.clientX;
-			y2=e.clientY;
-
-			D.onpointermove=moveW;
-
-			D.onpointerup=D.onpointercancel=stopW;
-		},
-		moveW=e=>{
-			prevent(e);
-			let cX=e.clientX,
-				cY=e.clientY;
-
-			x1=x2 - cX;
-			y1=y2 - cY;
-			x2=cX;
-			y2=cY;
-
-			wEl.style.top=(wEl.offsetTop - y1) + "px";
-			wEl.style.left=(wEl.offsetLeft - x1) + "px";
-		},
-		stopW=()=>['move','up','cancel'].map(e=>D['onpointer'+e]=null),
-		dr=win.drag;
-		dr.onpointerdown=startW;
-		dr.ontouchmove=prevent;
-	},
+	_initWin: winState=>
+		_.drag.init(winState.drag, winState.elem, ()=>_.win.manager.appendChild(winState.elem)),
 	open(name,content='',customAttrs=''){
 		let winId=this._ID(),
-		winState=_.wins[winId]={
+		winState={
 			id:winId,
 			name:name,
 			langs:name,
@@ -625,79 +777,82 @@ win:{
 		};
 		return this._opn(winState,content);
 	},
-	_opn(w,content=''){
+	_opn(winState,content=''){
 		if (!this.manager || !this.hider) throw new Error('Window managers not inited');
 
-		let wId=w.id,
+		let wId=winState.id,
 			html=
-			_.html`<div id=${wId} ${this.winAttrs} ${w.attrs}>
+			_.html`<div id=${wId} ${this.winAttrs} ${winState.attrs}>
 				<div style="display:flex;justify-content:space-between;align-items:center"
 				${this.dragAttrs} id=DRAGGER${wId}>
-					<span ${this.titleAttrs} id=title${wId}${_.lang.win('WINDOW-'+w.name)}/span>
+					<span ${this.titleAttrs} id=title${wId}${_.lang.winTitle(_.win.text+winState.name)}/span>
 					<div id=btns${wId}></div>
 				</div>
 				<div id=content${wId} style=overflow:auto;width:100%;height:100%>
 					${content.replace(/\{winId\}/g,wId)}
 				</div>
 			</div>`,
-			btns=_.$.q(`#btns${wId}`,html);
-		for(let b of this.defBtns) btns.append(this._winBtn(w,...b));
+			btns=html.querySelector(`#btns${wId}`);
+		for(let b of this.defBtns) btns.append(this._winBtn(winState,...b));
 		html.style.overflow='hidden';
 		html.style.resize='both';
 
 		let anim=this.animOpen;
 		if (anim)
-			_.$.on(html,'animationend',()=>html.classList.remove(anim),this._ae);
-		w.setTitle=nT=>_.win.setTitle(w,nT);
-		w.toggleFull=e=>_.win.toggleFull(w);
-		w.close=e=>_.win.close(w);
-		w.hide=e=>_.win.hide(w);
-		w.show=e=>_.win.show(w);
+			html.addEventListener('animationend',()=>html.classList.remove(anim),this._ae);
+		winState.setTitle=nT=>_.win.setTitle(winState,nT);
+		winState.toggleFull=e=>_.win.toggleFull(winState);
+		winState.close=e=>_.win.close(winState);
+		winState.hide=e=>_.win.hide(winState);
+		winState.show=e=>_.win.show(winState);
 		this.manager.append(html);
 
-		let win=w.elem=_.$.id(wId),
-			c=_.$.cliRect(_.$.id('content'+wId)),r=_.$.cliRect(win),
-			padX=r.width - c.width,padY=r.height - c.height;
-		w.drag=_.$.id('DRAGGER'+wId);
-		w.content=_.$.id('content'+wId);
+		let win=winState.elem=document.getElementById(wId),
+			contentRect=document.getElementById('content'+wId).getBoundingClientRect(),
+			windowRect=win.getBoundingClientRect(),
+			padX=windowRect.width - contentRect.width,padY=windowRect.height - contentRect.height;
+		winState.drag=document.getElementById('DRAGGER'+wId);
+		winState.content=document.getElementById('content'+wId);
 
-		if (w.onUnfull.width === 0) {
+		if (winState.onUnfull.width === 0) {
 			// Здесь и задаются координаты...
 			// Мастера клин кода не выносите мне мозги прошу
 			// Оно же работает!!!
-			if (!w.attrs.includes('top')) {
+			if (!winState.attrs.includes('top')) {
 				win.style.top=win.offsetTop - (win.offsetHeight / 2) + 'px';
 				win.style.left=win.offsetLeft - (win.offsetWidth / 2) + 'px';
 			}
-			if (!w.attrs.includes('width')) win.style.height=(win.offsetHeight - padX) + 'px';
-			if (!w.attrs.includes('height')) win.style.width=(win.offsetWidth - padY) + 'px';
+			if (!winState.attrs.includes('width')) win.style.height=(win.offsetHeight - padX) + 'px';
+			if (!winState.attrs.includes('height')) win.style.width=(win.offsetWidth - padY) + 'px';
 		} else
-			for (let pos in w.onUnfull)
-				win.style[pos] = w.onUnfull[pos] + 'px'
+			for (let pos in winState.onUnfull)
+				win.style[pos] = winState.onUnfull[pos] + 'px'
 
-		this._initWin(w);
-		_.$.on(w.drag,'contextmenu',(e)=>{
+		//this._initWin(winState);
+		this._initWin(winState);
+		winState.drag.addEventListener('contextmenu',(e)=>{
 			e.preventDefault();
 			if(e.target.closest('button')) return;
-			let wT=_.$.id('title'+wId);
-			if (!w.inRename){
+			let wT=document.getElementById('title'+wId);
+			if (!winState.inRename){
 				wT.innerHTML=`<input ${this.renameAttrs} id=rename${wId} value="${wT.textContent}">`;
-				w.inRename=true;
+				winState.inRename=true;
 			}else{
-				this.setTitle(w,_.$.id('rename'+wId).value);
-				w.inRename=false;
+				this.setTitle(winState,document.getElementById('rename'+wId).value);
+				winState.inRename=false;
 			}
 		});
 
-		if (w.state === 'hidened') w.hide();
+		if (winState.state === 'hidened') winState.hide();
 
-		return w;
+		_.wins.set(winState.id, winState);
+		return winState;
 	},
-	setTitle(win,newT){
-		win.langs=false;
-		win.name=newT;
-		let t=_.$.id('title'+win.id),
-			h=_.$.id('hider'+win.id);
+	setTitle(winState,newT){
+		winState.langs=false;
+		winState.name=newT;
+		let t=document.getElementById('title'+winState.id),
+			h=document.getElementById('hider'+winState.id);
 		t.innerHTML=newT;
 		t.removeAttribute('data-trans');
 		if (h){
@@ -705,19 +860,19 @@ win:{
 			h.removeAttribute('data-trans');
 		}
 	},
-	toggleFull(win){
-		let wEl=win.elem,
+	toggleFull(winState){
+		let wEl=winState.elem,
 			ws=wEl.style,
 			wc=wEl.classList,
-			cont=_.$.cliRect(_.$.id('content'+win.id)),
-			rect=_.$.cliRect(wEl),
-			padX=rect.width - cont.width,
-			padY=rect.height - cont.height,
+			contentRect=document.getElementById('content'+winState.id).getBoundingClientRect(),
+			windowRect=wEl.getBoundingClientRect(),
+			padX=windowRect.width - contentRect.width,
+			padY=windowRect.height - contentRect.height,
 			aOn=this.animFullOn,
 			aOff=this.animFullOff,
 			fd={
-				top: rect.top,	left: rect.left,
-				width: cont.width,	height: cont.height,
+				top: windowRect.top,	left: windowRect.left,
+				width: contentRect.width,	height: contentRect.height,
 			},
 			unful=()=>{
 				ws.top=old.top + 'px';
@@ -727,103 +882,118 @@ win:{
 			},
 			doFul=()=>{
 				if (aOn) wc.remove(aOn);
-				win.full=true;
-				win.onUnfull=fd;
+				winState.full=true;
+				winState.onUnfull=fd;
 				ws.top=0;
 				ws.left=0;
 				ws.width=`calc(100% - ${padX}px)`;
 				ws.height=`calc(100% - ${padY}px)`;
-				win.drag.onpointerdown=null;
+				winState.drag.onpointerdown=null;
 			},
 			doUnful=()=>{
 				if (aOff) wc.remove(aOff);
 				unful();
-				win.full=false;
-				this._initWin(win);
+				winState.full=false;
+				this._initWin(winState);
 			},
-			old=win.onUnfull;
-		if (!win.full) {
+			old=winState.onUnfull;
+		if (!winState.full) {
 			if (aOn) {
 				wc.add(aOn);
-				_.$.on(wEl,'animationend',doFul,this._ae);
+				wEl.addEventListener('animationend',doFul,this._ae);
 			}else doFul();
 		} else {
 			if (aOff) {
 				wc.add(aOff);
 				unful();
-				_.$.on(wEl,'animationend',doUnful,this._ae);
+				wEl.addEventListener('animationend',doUnful,this._ae);
 			}else doUnful();
 		}
 	},
-	close(win){
-		let w=win.elem,
+	close(winState){
+		let w=winState.elem,
 			remover=()=>{
-				let dr=win.drag,D=_.$.D;
+				let dr=winState.drag,D=document;
 				dr.onpointerdown=dr.ontouchmove=null;
 				// Удаляем обработчики висящие на документе
 				// Если их не удалять рано или поздно случится утечка памяти
 				// Я не знаю как я жил во времена 2.0 когда движок только появился
 				['move','up','cancel'].map(e=>D['onpointer'+e]=null);
 				w.remove();
-				delete _.wins[win.id];
+				_.wins.delete(winState.id);
 			};
 		if (w.style.display== 'none'){
-			_.$.id('hider'+win.id).remove();
+			document.getElementById('hider'+winState.id).remove();
 			remover();
 		}else{
 			let anim=this.animClose;
 			if(anim){
 				w.classList.add(anim);
-				_.$.on(w,'animationend',remover,this._ae);
+				w.addEventListener('animationend',remover,this._ae);
 			}else
 				remover();
 		}
 	},
-	hide(win){
-		let wEl=win.elem,
+	hide(winState){
+		let wEl=winState.elem,
 			wc=wEl.classList,
 			anim=this.animHide,
 			hider=()=>{
 				wEl.style.display='none';
 				if(anim)wc.remove(anim);
-				win.state='hidened';
-				this.hider.append(this._hiderBtn(win));
+				winState.state='hidened';
+				this.hider.append(this._hiderBtn(winState));
 			}
 		if(anim){
 			wc.add(anim);
-			_.$.on(wEl,'animationend',hider,this._ae);
+			wEl.addEventListener('animationend',hider,this._ae);
 		}else
 			hider();
 	},
-	show(win){
-		let wEl=win.elem,
+	show(winState){
+		let wEl=winState.elem,
 			wc=wEl.classList,
 			anim=this.animShow,
-			hider=_.$.id('hider'+win.id),
+			hider=document.getElementById('hider'+winState.id),
 			shower=()=>{
 				if(anim)wc.remove(anim);
-				win.state='opened';
+				winState.state='opened';
 			}
 		wEl.style.display='';
 		hider.remove();
 		if(anim){
 			wc.add(anim);
-			_.$.on(wEl,'animationend',shower,this._ae);
+			wEl.addEventListener('animationend',shower,this._ae);
 		}else
 			shower()
 	},
+	/*
+	 * о да, ниже идёт самая крутая фишка которую я готовлю к 2.2
+	 * 
+	 * СОХРАНЕНИЕ-ВОССТАНОВКА ОКОН
+	 * Помните автоформы? Здесь я поступил лучше
+	 * Вы можете полностью сохранить окна, как - решаете вы, но лучше
+	 * Вместо колбека я теперь просто делаю разовый читатель, так намного гибче
+	 * Плюсом я делаю разовый восстановитель который возвращает все окна
+	 * Так тоже в разы гибче, авось у вас в окнах были вебсокеты и их нужно восстановить
+	 * Проще записать результат а потом прогнать проверку по data-ws атрибутам
+	 * Или как вы ещё придумаете
+	 * 
+	 * !!!: Оно работает настолько гибко что в теории можно сделать виртуальные рабочие столы
+	 */
 	read(){
 		let store = {};
-		for (let winId in _.wins) {
-			let win={..._.wins[winId]},
+		for (let [winId, winPre] of _.wins) {
+			let win = { ...winPre },
 				size=win.onUnfull,
 				wEl = win.elem,
-				c=_.$.cliRect(win.content),r=_.$.cliRect(wEl);
+				contentRect=win.content.getBoundingClientRect(),
+				windowRect=wEl.getBoundingClientRect();
 			win.realContent=win.content.innerHTML;
-			size.top=r.top;
-			size.left=r.left;
-			size.height=wEl.offsetHeight - (r.height - c.height);
-			size.width=wEl.offsetWidth - (r.width - c.width);
+			size.top=windowRect.top;
+			size.left=windowRect.left;
+			size.height=wEl.offsetHeight - (windowRect.height - contentRect.height);
+			size.width=wEl.offsetWidth - (windowRect.width - contentRect.width);
 			delete win.elem;
 			delete win.drag;
 			delete win.content;
@@ -836,15 +1006,16 @@ win:{
 			let win=state[winId],
 			content=win.realContent;
 			delete win.realContent;
-			_.wins[winId] = win;
+			_.wins.set(winId, win);
 			this._opn(win,content);
 		}
+		return _.wins;
 	},
 },
-wins:{},
+wins: new Map(),
 };
 
-_.$.on(window,'popstate',()=>{
+window.addEventListener('popstate',()=>{
 	let l=_.link
 	/*
 	 * popstate срабатывает когда:
@@ -867,4 +1038,4 @@ _.$.on(window,'popstate',()=>{
 		l._i=false;
 });
 
-return _}();
+return _};

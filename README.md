@@ -1,8 +1,8 @@
 # newHelper.js
-- Наш дискорд сервер!
-- Our discord server!
-- https://discord.gg/zetb62mqsS (newHelper.js dev)
-- Сейчас передо мной стоит вопрос - делать ли движок плагинов? и если делать выносить движок окон в внешний плагин?
+Наш дискорд сервер!  
+Our discord server!  
+https://discord.gg/zetb62mqsS (newHelper.js dev)  
+Сейчас передо мной стоит вопрос - делать ли движок плагинов? и если делать выносить движок окон в внешний плагин?
 
 - [english version](README-en.md)
 - [документация](docs.md)

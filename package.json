@@ -1,6 +1,6 @@
 {
   "name": "newhelper-js",
-  "version": "2.1.6",
+  "version": "2.1.8",
   "description": "сверх лёгкая библиотека для построения админок",
   "keywords": [
     "admin",
@@ -10,6 +10,7 @@
     "dialog",
     "router",
     "window-manager",
+	"desktop",
     "i18n",
     "internationalization",
     "lazy-loading",
@@ -17,7 +18,9 @@
     "lightweight",
     "vanilla-js",
     "frontend",
-    "zero-dependencies"
+    "zero-dependencies",
+	"toasts",
+	"notifications"
   ],
   "homepage": "https://github.com/MIOBOMB/newHelper-js#readme",
   "bugs": {
